@@ -2,7 +2,7 @@
  *  ZXT-120 HVAC Control
  *
  *  Author: b.dahlem@gmail.com (based on Z-Wave Thermostat by SmartThings)
- *  Date: 2014-04-10
+ *  Date: 2014-04-11
  *  Code: https://github.com/bdahlem/device-type.zxt-120
  *
  * Copyright (C) 2013 Brian Dahlem <bdahlem@gmail.com>
@@ -52,6 +52,8 @@ metadata {
 		command "setRemoteCode"
         command "raiseTemperature"
         command "lowerTemperature"
+        
+        command "adjustTemperature", ["NUMBER"]
         
         // Z-Wave description of the ZXT-120 device
 		fingerprint deviceId: "0x08"
