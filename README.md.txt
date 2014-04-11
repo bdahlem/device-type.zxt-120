@@ -1,52 +1,24 @@
-device-type.weatherstation
+device-type.ZXT-120
 ==========================
 
-http://build.smartthings.com/projects/weatherstation/
-
-This is an internet-based weather station SmartDevice for your SmartThings Hub.  This device will
-automatically use your Hub's (or pre-defined) location for the current conditions.
+The ZXT-120 is an HVAC controller for your SmartThings Hub.  This device will accept commands like a normal thermostat and relay them by IR to the air conditioner/heat-pump.
 
 ## Installation
 
 1. Create a new device type (https://graph.api.smartthings.com/ide/devices)
-    * Name: Weather Station
-    * Author: jnovack@gmail.com
+    * Name: ZXT-120
+    * Author: b.dahlem@gmail.com
     * Capabilities:
-        * Polling
-        * Relative Humidity Measurement
-        * Temperature Measurement
-        * Water Sensor
+        * Thermostat
 
-2. Create a new device (https://graph.api.smartthings.com/device/list)
-    * Name: Weather Station
-    * Device Network Id: WEATHERSTATION-001 (increase for each weather station you add)
-    * Type: Weather Station (should be near the last option)
-    * Location: Choose the correct location
-    * Hub/Group: Choose a hub (this will autopopulate the zipcode)
+(Note, the code contains all capabilities and the ide now updates based on the capabilities in the code).
 
-3. There's no step 3!
+    * Copy the contents of ZXT-120.device-type.groovy to the ide
+
+2. Associate your ZXT-120 with the SmartThings hub.  In the things list, click the + tile, then press the button on the ZXT-120.
+
+3. In the "My Devices" tab on graph.api.smartthings.com, edit the new "Z-Wave Thermostat" that you just created.  Change the device type from "Z-Wave Thermostat" to "ZXT-120 Thermostat".
+
 
 ## Use
-
-The device, by itself, is relatively unimpressive. It just displays the following data
-for each of your locations:
-
- * Outside Temperature
- * Humidity
- * Feels Like (Temperature and Relative Humidity)
- * Current Forecast
- * Wind Speed
- * Wind Direction
- * UV Index
- * Precipitation over last hour
-
-The real magic is writing SmartApps that do something based on this data.
-
-For example, you can alert yourself when:
-
- * the Wind Speed is high, so you can secure your garbage cans.
- * the UV Index is high, so you can remind yourself to take sunscreen.
- * the forecast is rainy, so you can take your umbrella.
- * the precipitation is zero so you can go outside (very useful in Seattle)
- * ...and more!
-
+In the SmartThings app on your smartphone, open the settings for the ZXT-120 then tap on the preferences tile.  Change the remote code to the code for your air conditioner.  Then click configure tile to set the remote code.  You may need to try several codes to enable all the functions for your air conditioner.
