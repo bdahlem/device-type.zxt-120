@@ -22,3 +22,9 @@ The ZXT-120 is an HVAC controller for your SmartThings Hub.  This device will ac
 
 ## Use
 In the SmartThings app on your smartphone, open the settings for the ZXT-120 then tap on the preferences tile.  Change the remote code to the code for your air conditioner.  Then click configure tile to set the remote code.  You may need to try several codes to enable all the functions for your air conditioner.
+
+Remote codes for firmware v. 1.5 of the ZXT-120 are available at: 
+http://www.remotec.com.hk/photos/software/Z-wave/ZXT-120%20Code%20List%20V1.5_20131203.pdf
+
+The support page for the ZXT-120:
+http://www.remotec.com.hk/zaspx/support.aspx
