@@ -2,7 +2,7 @@
  *  ZXT-120 HVAC Control
  *
  *  Author: b.dahlem@gmail.com (based on Z-Wave Thermostat by SmartThings)
- *  Date: 2014-04-11
+ *  Date: 2014-04-10
  *  Code: https://github.com/bdahlem/device-type.zxt-120
  *
  * Copyright (C) 2013 Brian Dahlem <bdahlem@gmail.com>
@@ -122,7 +122,7 @@ metadata {
 		standardTile("fanMode", "device.thermostatFanMode", inactiveLabel: false, decoration: "flat", canChangeIcon: true, canChangeBackground: true) {
 			state "fanAuto", action:"switchFanMode", icon:"st.Appliances.appliances11", label: 'AUTO'
 			state "fanLow", action:"switchFanMode", icon:"st.Appliances.appliances11", label: 'LOW'
-			state "fanMed", action:"switchFanMode", icon:"st.Appliances.appliances11", label: 'MED'
+			state "fanMedium", action:"switchFanMode", icon:"st.Appliances.appliances11", label: 'MED'
 			state "fanHigh", action:"switchFanMode", icon:"st.Appliances.appliances11", label: 'HIGH'
 		}
         // Swing mode switch.  Indicate and allow the user to change between fan oscillation settings
@@ -203,12 +203,16 @@ def getModeMap() { [
     "autoChangeover": physicalgraph.zwave.commands.thermostatmodev1.ThermostatModeSet.MODE_AUTO_CHANGEOVER
 ]}
 
+def fanModes() {
+	["fanAuto", "fanLow", "fanMedium", "fanHigh"]
+}
+
 // fanModeMap - Link the possible fan speeds with their ZWave id numbers
 def getFanModeMap() { [
-	"auto": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_AUTO_LOW,
-	"low": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_LOW,
-    "med": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_MEDIUM,
-    "high": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_HIGH
+	"fanAuto": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_AUTO_LOW,
+	"fanLow": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_LOW,
+    "fanMedium": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_MEDIUM,
+    "fanHigh": physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanModeReport.FAN_MODE_HIGH
 ]}
 
 // Command parameters
@@ -399,13 +403,13 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
 	switch (cmd.parameterNumber) {
     	// If the device is reporting its remote code
-    	case commandParameter["remoteCode"]:
+    	case commandParameters["remoteCode"]:
         	// Simply report the code
         	log.debug "remote code" + cmd.configurationValue.toString()
         	break
             
         // If the device is reporting its oscillate mode
-    	case commandParameter["oscillateSetting"]:
+    	case commandParameters["oscillateSetting"]:
         	// determine if the device is oscillating
         	def oscillateMode = (cmd.configurationValue[0] == 0) ? "Off" : "On"
             
@@ -439,8 +443,8 @@ def poll() {
 		zwave.sensorMultilevelV3.sensorMultilevelGet().format(), 		// current temperature
 		zwave.thermostatModeV2.thermostatModeGet().format(),     		// thermostat mode
 		zwave.thermostatFanModeV3.thermostatFanModeGet().format(),		// fan speed
-        zwave.configurationV1.configurationGet(parameterNumber: commandParameter["remoteCode"]).format(),		// remote code
-        zwave.configurationV1.configurationGet(parameterNumber: commandParameter["oscillateSetting"]).format()	// oscillate setting
+        zwave.configurationV1.configurationGet(parameterNumber: commandParameters["remoteCode"]).format(),		// remote code
+        zwave.configurationV1.configurationGet(parameterNumber: commandParameters["oscillateSetting"]).format()	// oscillate setting
 	]
     
     // add requests for each thermostat setpoint available on the device
@@ -573,11 +577,12 @@ def switchToMode(nextMode) {
 def switchFanMode() {
 	// Determine the current fan speed setting
 	def currentMode = device.currentState("thermostatFanMode")?.value
-	def lastTriedMode = getDataByName("lastTriedFanMode") ?: currentMode ?: "off"
+	def lastTriedMode = getDataByName("lastTriedFanMode") ?: currentMode.value ?: "off"
     
     // Determine what fan speeds are available
 	def supportedModes = getDataByName("supportedFanModes") ?: "fanAuto fanLow"
-	def modeOrder = fanModeMap.keySet()
+	def modeOrder = fanModes()
+    //log.info modeOrder
     
     // Determine what the next fan speed should be
 	def next = { modeOrder[modeOrder.indexOf(it) + 1] ?: modeOrder[0] }
@@ -597,7 +602,7 @@ def switchToFanMode(nextMode) {
 	if(supportedFanModes && !supportedFanModes.tokenize()?.contains(nextMode)) log.warn "thermostat mode '$nextMode' is not supported"
 
     // If the mode is even possible
-	if (nextMode in fanModes().keySet()) {
+	if (nextMode in fanModes()) {
     	// Try to switch to the mode
 		updateState("lastTriedFanMode", nextMode)
 		return "$nextMode"()  // Call the function perform the mode switch
@@ -628,6 +633,8 @@ def setThermostatMode(String value) {
 // Set Thermostat Fan Mode
 // Set the device to the named fan speed
 def setThermostatFanMode(String value) {
+
+	log.debug value + " ${fanModeMap[value]}"
 	delayBetween([
     	// Command the device to change the fan speed
 		zwave.thermostatFanModeV3.thermostatFanModeSet(fanMode: fanModeMap[value]).format(),
@@ -673,19 +680,19 @@ def autoChangeover() {
 }
 
 def fanLow() {
-	setThermostatFanMode("low")
+	setThermostatFanMode("fanLow")
 
 }
-def fanMed() {
-	setThermostatMode("med")
+def fanMedium() {
+	setThermostatFanMode("fanMedium")
 
 }
 def fanHigh() {
-	setThermostatMode("high")
+	setThermostatFanMode("fanHigh")
 }
 
 def fanAuto() {
-	setThermostatMode("auto")
+	setThermostatFanMode("fanAuto")
 
 }
 
@@ -717,6 +724,7 @@ def adjustTemperature(double amount) {
     def degrees = device.latestValue("thermostatSetpoint")
     def convertedDegrees
     def convertedMax
+    def convertedMin
     if (locationScale == "C" && deviceScaleString == "F") {
     	convertedDegrees = celsiusToFahrenheit(degrees)
     } else if (locationScale == "F" && deviceScaleString == "C") {
@@ -783,8 +791,8 @@ def setFanOscillate(swingMode) {
     delayBetween ([
     	// Command the new Swing Mode
 	    zwave.configurationV1.configurationSet(configurationValue: [swingValue],
-        	parameterNumber: commandParameter["oscillateSetting"], size: 1).format(),
+        	parameterNumber: commandParameters["oscillateSetting"], size: 1).format(),
         // Request the device's swing mode to make sure the new setting was accepted
-        zwave.configurationV1.configurationGet(parameterNumber: commandParameter["oscillateSetting"]).format()    
+        zwave.configurationV1.configurationGet(parameterNumber: commandParameters["oscillateSetting"]).format()    
     ])
 }
