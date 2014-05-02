@@ -2,7 +2,7 @@
  *  ZXT-120 HVAC Control
  *
  *  Author: b.dahlem@gmail.com (based on Z-Wave Thermostat by SmartThings)
- *  Date: 2014-04-10
+ *  Date: 2014-05-01
  *  Code: https://github.com/bdahlem/device-type.zxt-120
  *
  * Copyright (C) 2013 Brian Dahlem <bdahlem@gmail.com>
@@ -55,9 +55,11 @@ metadata {
         
         command "adjustTemperature", ["NUMBER"]
         
+        attribute "swingMode", "STRING"
+        
         // Z-Wave description of the ZXT-120 device
-		fingerprint deviceId: "0x08"
-		fingerprint inClusters: "0x43,0x40,0x44,0x31"
+		fingerprint deviceId: "0x0806"
+		fingerprint inClusters: "0x20,0x27,0x31,0x40,0x43,0x44,0x70,0x72,0x80,0x86"
 	}
 
 	// simulator metadata - for testing in the simulator
@@ -127,7 +129,8 @@ metadata {
 		}
         // Swing mode switch.  Indicate and allow the user to change between fan oscillation settings
         standardTile("swingMode", "device.swingMode", inactiveLabel: false, decoration: "flat", canChangeIcon: true, canChangeBackground: true) {
-			state "oscillate", action:"switchFanOscillate", icon:"st.secondary.refresh-icon", label: 'Swing ${currentValue}'
+            state "on", action:"switchFanOscillate", icon:"st.secondary.refresh-icon", label: 'Swing On'
+            state "off", action:"switchFanOscillate", icon:"st.secondary.refresh-icon", label: 'Swing Off'
 		}
         
         // Temperature control.  Allow the user to control the target temperature with up and down arrows
@@ -229,7 +232,7 @@ def getCommandParameters() { [
 def parse(String description)
 {
 	// If the device sent an update, interpret it
-	def map = createEvent(zwaveEvent(zwave.parse(description, [0x42:1, 0x43:2, 0x31: 3])))
+	def map = createEvent(zwaveEvent(zwave.parse(description, [0x70:1, 0x42:1, 0x43:2, 0x31: 3])))
 	// if the update wasn't from the device, quit
     if (!map) {
 		return null
@@ -359,6 +362,42 @@ def zwaveEvent(physicalgraph.zwave.commands.thermostatfanmodev3.ThermostatFanMod
 	map
 }
 
+def zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport cmd) {
+	def map = [:]
+    
+    switch (cmd.parameterNumber) {
+        // If the device is reporting its remote code
+        case commandParameters["remoteCode"]:
+            map.name = "remoteCode"
+            map.displayed = false
+            
+            def short remoteCodeLow = cmd.configurationValue[1]
+    		def short remoteCodeHigh = cmd.configurationValue[0]
+            map.value = (remoteCodeHigh << 8) + remoteCodeLow
+            
+        	break
+
+            // If the device is reporting its oscillate mode
+        case commandParameters["oscillateSetting"]:
+        	// determine if the device is oscillating
+        	def oscillateMode = (cmd.configurationValue[0] == 0) ? "off" : "on"
+
+			//log.debug "Updated: Oscillate " + oscillateMode
+            map.name = "swingMode"
+            map.value = oscillateMode
+            map.displayed = true
+            map.isStateChange = cmd.configurationValue[0] != swingMode
+
+        	// Store and report the oscillate mode
+        	updateState("swingMode", oscillateMode)
+        	//sendEvent(name: "swingMode", value: oscillateMode, displayed: true)
+
+        	break
+	}
+    
+    map
+}
+
 // - Thermostat Supported Modes Report
 // The device is reporting heating/cooling modes it supports
 def zwaveEvent(physicalgraph.zwave.commands.thermostatmodev2.ThermostatModeSupportedReport cmd) {
@@ -401,30 +440,8 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
 // - Command Report
 // The device is reporting parameter settings
 def zwaveEvent(physicalgraph.zwave.Command cmd) {
-	switch (cmd.parameterNumber) {
-    	// If the device is reporting its remote code
-    	case commandParameters["remoteCode"]:
-        	// Simply report the code
-        	log.debug "remote code" + cmd.configurationValue.toString()
-        	break
-            
-        // If the device is reporting its oscillate mode
-    	case commandParameters["oscillateSetting"]:
-        	// determine if the device is oscillating
-        	def oscillateMode = (cmd.configurationValue[0] == 0) ? "Off" : "On"
-            
-            // Store and report the oscillate mode
-        	updateState("swingMode", oscillateMode)
-            log.debug "Updated: Oscillate " + oscillateMode
-            sendEvent(name: "swingMode", value: oscillateMode, displayed: true)
-             
-        	break
-    
-    	// For other commands
-    	default:
-        	// simply report it
-			log.warn "Unexpected zwave command $cmd"
-    }
+    // simply report it
+    log.warn "Unexpected zwave command $cmd"
 }
 
 // Update State
@@ -439,13 +456,13 @@ def updateState(String name, String value) {
 def poll() {
 
 	// create a list of requests to send
-	def commands = [
-		zwave.sensorMultilevelV3.sensorMultilevelGet().format(), 		// current temperature
-		zwave.thermostatModeV2.thermostatModeGet().format(),     		// thermostat mode
-		zwave.thermostatFanModeV3.thermostatFanModeGet().format(),		// fan speed
-        zwave.configurationV1.configurationGet(parameterNumber: commandParameters["remoteCode"]).format(),		// remote code
-        zwave.configurationV1.configurationGet(parameterNumber: commandParameters["oscillateSetting"]).format()	// oscillate setting
-	]
+	def commands = []
+    
+    commands <<	zwave.sensorMultilevelV3.sensorMultilevelGet().format()		// current temperature
+	commands <<	zwave.thermostatModeV2.thermostatModeGet().format()     		// thermostat mode
+	commands <<	zwave.thermostatFanModeV3.thermostatFanModeGet().format()		// fan speed
+    commands <<	zwave.configurationV1.configurationGet(parameterNumber: commandParameters["remoteCode"]).format()		// remote code
+    commands <<	zwave.configurationV1.configurationGet(parameterNumber: commandParameters["oscillateSetting"]).format()	// oscillate setting
     
     // add requests for each thermostat setpoint available on the device
     for (setpoint in setpointModeMap) {
@@ -776,7 +793,7 @@ def setRemoteCode() {
 // Toggle fan oscillation on and off
 def switchFanOscillate() {
 	// Load the current swingmode and invert it (Off becomes true, On becomes false)
-	def swingMode = (getDataByName("swingMode") == "Off")  
+	def swingMode = (getDataByName("swingMode") == "off")  
     
     // Make the new swingMode happen
     setFanOscillate(swingMode)
