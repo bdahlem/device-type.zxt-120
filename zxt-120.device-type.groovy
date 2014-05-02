@@ -2,7 +2,7 @@
  *  ZXT-120 HVAC Control
  *
  *  Author: b.dahlem@gmail.com (based on Z-Wave Thermostat by SmartThings)
- *  Date: 2014-05-01
+ *  Date: 2014-05-02
  *  Code: https://github.com/bdahlem/device-type.zxt-120
  *
  * Copyright (C) 2013 Brian Dahlem <bdahlem@gmail.com>
@@ -385,12 +385,12 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport 
 			//log.debug "Updated: Oscillate " + oscillateMode
             map.name = "swingMode"
             map.value = oscillateMode
-            map.displayed = true
-            map.isStateChange = cmd.configurationValue[0] != swingMode
+            map.displayed = false 
+
+            map.isStateChange = oscillateMode != getDataByName("swingMode")
 
         	// Store and report the oscillate mode
         	updateState("swingMode", oscillateMode)
-        	//sendEvent(name: "swingMode", value: oscillateMode, displayed: true)
 
         	break
 	}
