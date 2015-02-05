@@ -467,7 +467,7 @@ def poll() {
     // add requests for each thermostat setpoint available on the device
     for (setpoint in setpointModeMap) {
         def supportedModes = getDataByName("supportedModes")
-        if (supportedModes.tokenize()?.contains(setpoint.key)) {
+        if (supportedModes?.tokenize()?.contains(setpoint.key)) {
             commands << [zwave.thermostatSetpointV1.thermostatSetpointGet(setpointType: setpointMap[setpoint.value]).format()]
         }
     }
