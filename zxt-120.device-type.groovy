@@ -44,6 +44,7 @@ metadata {
 		capability "Configuration"
 		capability "Polling"
 		capability "Sensor"
+		capability "Battery"
 
 		// Commands that this device-type exposes for controlling the ZXT-120 directly
 		command "switchMode"
@@ -110,6 +111,10 @@ metadata {
 				]
 			)
 		}
+		// Battery Status tile
+		valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
+			state "battery", label:'${currentValue}% battery', unit:""
+		}
         // Mode switch.  Indicate and allow the user to change between heating/cooling modes
 		standardTile("mode", "device.thermostatMode", inactiveLabel: false, decoration: "flat", canChangeIcon: true, canChangeBackground: true) {
 			state "off", action:"switchMode", icon:"st.thermostat.heating-cooling-off", label: ' '
@@ -132,7 +137,15 @@ metadata {
             state "on", action:"switchFanOscillate", icon:"st.secondary.refresh-icon", label: 'Swing On'
             state "off", action:"switchFanOscillate", icon:"st.secondary.refresh-icon", label: 'Swing Off'
 		}
-        
+        // Last Poll Tile
+		valueTile("lastPoll", "device.lastPoll", inactiveLabel: false, decoration: "flat") {
+			state "lastPoll", label:'${currentValue}', unit:""
+		}
+        // Current Config Code
+		valueTile("currentConfigCode", "device.currentConfigCode", inactiveLabel: false, decoration: "flat") {
+			state "currentConfigCode", label:'Config# ${currentValue}', unit:""
+		}
+
         // Temperature control.  Allow the user to control the target temperature with up and down arrows
         // to allow for precise temperature setting.  Indicate the set temperature between the arrows
 		standardTile("temperatureLower", "device.thermostatSetpoint", inactiveLabel: false, decoration: "flat", canChangeIcon: true, canChangeBackground: true) {
@@ -167,8 +180,8 @@ metadata {
         
         // Layout the controls on the SmartThings device UI.  The page is a 3x3 layout, tiles are layed out
         // starting in the upper left working right then down.
-		main "temperature"
-		details(["temperature", "temperatureRaise", "temperatureSetpoint", "mode", "fanMode", "temperatureLower", "swingMode", "refresh", "configure", "setRemoteCode"])
+		main (["temperature", "temperatureSetpoint"])
+        details(["temperature", "temperatureRaise", "temperatureSetpoint", "mode", "fanMode", "temperatureLower", "swingMode", "refresh", "configure", "setRemoteCode", "battery", "lastPoll", "currentConfigCode"])
 	}
 }
 
@@ -291,6 +304,16 @@ def parse(String description)
 //***** Event Handlers
 //Handle events coming from the device
 
+// Battery Level event
+def zwaveEvent(physicalgraph.zwave.commands.batteryv1.BatteryReport cmd) {
+	def map = [:]
+	map.name = "battery"
+	map.value = cmd.batteryLevel > 0 ? cmd.batteryLevel.toString() : 1
+	map.unit = "%"
+	map.displayed = false
+	map
+}
+
 // - Thermostat Setpoint Report
 // The device is telling us what temperatures it is set to for a particular mode
 def zwaveEvent(physicalgraph.zwave.commands.thermostatsetpointv2.ThermostatSetpointReport cmd)
@@ -375,6 +398,10 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport 
     		def short remoteCodeHigh = cmd.configurationValue[0]
             map.value = (remoteCodeHigh << 8) + remoteCodeLow
             
+		    // Display configed code in tile
+			log.debug "currentConfigCode=$map.value"
+			sendEvent("name":"currentConfigCode", "value":map.value)
+
         	break
 
             // If the device is reporting its oscillate mode
@@ -454,11 +481,18 @@ def updateState(String name, String value) {
 // Command Implementations
 // Ask the device for its current state
 def poll() {
+	def now=new Date()
+	def tz = location.timeZone
+	def nowString = now.format("MMM/dd HH:mm",tz)
 
+	sendEvent("name":"lastPoll", "value":nowString)
+
+	log.debug "Polling now $nowString"
 	// create a list of requests to send
 	def commands = []
     
     commands <<	zwave.sensorMultilevelV3.sensorMultilevelGet().format()		// current temperature
+	commands <<	zwave.batteryV1.batteryGet().format()                       // current battery level
 	commands <<	zwave.thermostatModeV2.thermostatModeGet().format()     		// thermostat mode
 	commands <<	zwave.thermostatFanModeV3.thermostatFanModeGet().format()		// fan speed
     commands <<	zwave.configurationV1.configurationGet(parameterNumber: commandParameters["remoteCode"]).format()		// remote code
