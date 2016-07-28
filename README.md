@@ -5,6 +5,12 @@ The ZXT-120 is an HVAC controller for your SmartThings Hub.  This device will ac
 
 ## Installation
 
+Go to your SmartThings IDE and go to your My Device Handlers. Click on Settings and add a new repository with owner bdahlem, name device-type.zxt-120 and branch master. Click Ok.
+
+Click on the Update from Repo button and select the HomeCloudHub repo. Select the zxt-120 device type and install it.
+
+Alternatively:
+
 1. Create a new device type (https://graph.api.smartthings.com/ide/devices)
     * Name: ZXT-120
     * Author: b.dahlem@gmail.com
