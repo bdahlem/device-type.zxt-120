@@ -19,7 +19,7 @@ Alternatively:
 
 (Note, the code contains all capabilities and the ide now updates based on the capabilities in the code).
 
-    * Copy the contents of ZXT-120.device-type.groovy to the ide
+    * Copy the contents of devicetpyes/bdahlem/zxt-120.src/zxt-120.groovy to the ide
 
 2. Associate your ZXT-120 with the SmartThings hub.  In the things list, click the + tile, then press the button on the ZXT-120.
 
