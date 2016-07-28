@@ -36,7 +36,7 @@ preferences {
 }
 
 metadata {
-	definition (name: "ZXT-120 Thermostat", namespace: "", author: "b.dahlem@gmail.com") {
+	definition (name: "zxt-120", namespace: "bdahlem", author: "b.dahlem@gmail.com") {
 		// Device capabilities of the ZXT-120
         capability "Actuator"
 		capability "Temperature Measurement"
